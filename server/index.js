@@ -37,7 +37,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/contacts", contactsRoute);
 app.use("/api/messages", messagesRoute);
 
-const server = app.listen(port, () => {
+const server = app.listen(port,'0.0.0.0', () => {
   console.log(`Server is running at :${port}`);
 });
 // set up socket
