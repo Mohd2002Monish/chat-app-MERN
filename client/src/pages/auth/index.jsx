@@ -98,14 +98,12 @@ const Auth = () => {
         { email, password },
         { withCredentials: true }
       );
-      console.log(response);
       toast.dismiss(loadingToast);
       if (response.status === 201) {
         setUserInfo(response.data.user);
         navigate("/profile");
       }
     } catch (error) {
-      console.log(error,'jsjsjsj');
       if (
         error.response.status === 400 ||
         error.response.status === 404 ||
