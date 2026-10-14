@@ -1,0 +1,68 @@
+"use client";
+
+import { useAppStore } from "@/store";
+import { HOST } from "@/utils/constants";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
+import { io } from "socket.io-client";
+
+const SocketContext = createContext(null);
+
+export const useSocket = () => {
+  return useContext(SocketContext);
+};
+
+export const SocketProvider = ({ children }) => {
+  const socket = useRef(null);
+  const { userInfo } = useAppStore();
+
+  useEffect(() => {
+    if (userInfo?.id) {
+      socket.current = io(HOST || undefined, {
+        withCredentials: true,
+        query: { userId: userInfo.id },
+      });
+
+      socket.current.on("connect", () => {
+        console.log("Connected to socket server");
+      });
+
+      const handleReceiveMessage = (messageData) => {
+        const {
+          selectedChatType,
+          selectedChatData,
+          addMessage,
+          addContactsInDMContacts,
+        } = useAppStore.getState();
+
+        if (
+          selectedChatType !== undefined &&
+          (selectedChatData?._id === messageData.sender?._id ||
+            selectedChatData?._id === messageData.recipient?._id)
+        ) {
+          console.log("message received: ", messageData);
+          addMessage(messageData);
+        }
+        addContactsInDMContacts(messageData);
+      };
+
+      socket.current.on("receiveMessage", handleReceiveMessage);
+
+      return () => {
+        if (socket.current) {
+          socket.current.disconnect();
+        }
+      };
+    }
+  }, [userInfo]);
+
+  return (
+    <SocketContext.Provider value={socket.current}>
+      {children}
+    </SocketContext.Provider>
+  );
+};

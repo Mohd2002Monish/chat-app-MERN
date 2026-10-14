@@ -4,7 +4,7 @@ import Message from "./models/MessagesModel.js";
 const setupSocket = (server) => {
     const io = new SocketIOServer(server, {
         cors: {
-            origin: [process.env.ORIGIN],
+            origin: process.env.ORIGIN ? [process.env.ORIGIN] : true,
             methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
             credentials: true,
         },
@@ -23,58 +23,68 @@ const setupSocket = (server) => {
     };
 
     const sendMessage = async (message) => {
-        const senderSocketId = userSocketMap.get(message.sender);
-        const recipientSocketId = userSocketMap.get(message.recipient);
+        try {
+            const senderSocketId = userSocketMap.get(message.sender);
+            const recipientSocketId = userSocketMap.get(message.recipient);
 
-        const createdMessage = await Message.create(message);
+            const createdMessage = await Message.create(message);
 
-        const messageData = await Message.findById(createdMessage._id)
-            .populate("sender", "id email firstName lastName image color")
-            .populate("recipient", "id email firstName lastName image color");
+            const messageData = await Message.findById(createdMessage._id)
+                .populate("sender", "id email firstName lastName image color")
+                .populate("recipient", "id email firstName lastName image color");
 
-        if (recipientSocketId) {
-            io.to(recipientSocketId).emit("receiveMessage", messageData);
-        }
-        if (senderSocketId) {
-            io.to(senderSocketId).emit("receiveMessage", messageData);
+            if (recipientSocketId) {
+                io.to(recipientSocketId).emit("receiveMessage", messageData);
+            }
+            if (senderSocketId) {
+                io.to(senderSocketId).emit("receiveMessage", messageData);
+            }
+        } catch (error) {
+            console.error("Error in sendMessage socket event:", error);
         }
     };
 
     const sendChannelMessage = async (message) => {
-        const { channelId, sender, content, messageType, fileUrl } = message;
-        const createdMessage = await Message.create({
-            sender,
-            recipient: null,
-            content,
-            messageType,
-            fileUrl,
-        });
-        const messageData = await Message.findById(createdMessage._id)
-            .populate("sender", "id email firstName lastName image color")
-            .exec();
-
-        await Channel.findByIdAndUpdate(channelId, {
-            $push: { messages: createdMessage._id },
-        });
-
-        const channel = await Channel.findById(channelId).populate("members");
-
-        const finalData = {
-            ...messageData._doc,
-            channelId: channel._id,
-        };
-
-        if (channel && channel.members) {
-            channel.members.forEach((member) => {
-                const memberSocketId = userSocketMap.get(member.id.toString());
-                if (memberSocketId) {
-                    io.to(memberSocketId).emit("receive-channel-message", finalData);
-                }
+        try {
+            const { channelId, sender, content, messageType, fileUrl } = message;
+            const createdMessage = await Message.create({
+                sender,
+                recipient: null,
+                content,
+                messageType,
+                fileUrl,
             });
-            const adminSocketId = userSocketMap.get(channel.admin._id.toString());
-            if (adminSocketId) {
-                io.to(adminSocketId).emit("receive-channel-message", finalData);
+            const messageData = await Message.findById(createdMessage._id)
+                .populate("sender", "id email firstName lastName image color")
+                .exec();
+
+            if (typeof Channel !== "undefined") {
+                await Channel.findByIdAndUpdate(channelId, {
+                    $push: { messages: createdMessage._id },
+                });
+
+                const channel = await Channel.findById(channelId).populate("members");
+
+                const finalData = {
+                    ...messageData._doc,
+                    channelId: channel._id,
+                };
+
+                if (channel && channel.members) {
+                    channel.members.forEach((member) => {
+                        const memberSocketId = userSocketMap.get(member.id.toString());
+                        if (memberSocketId) {
+                            io.to(memberSocketId).emit("receive-channel-message", finalData);
+                        }
+                    });
+                    const adminSocketId = userSocketMap.get(channel.admin?._id?.toString());
+                    if (adminSocketId) {
+                        io.to(adminSocketId).emit("receive-channel-message", finalData);
+                    }
+                }
             }
+        } catch (error) {
+            console.error("Error in sendChannelMessage socket event:", error);
         }
     };
 
