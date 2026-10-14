@@ -1,0 +1,24 @@
+[
+  {
+    "roomId": "room-ef9jaryee9g",
+    "name": "Room EE9G",
+    "creatorId": "anon_zui2z2f4mv8hs4zh",
+    "members": [
+      "anon_zui2z2f4mv8hs4zh"
+    ],
+    "lastMessage": "Encrypted channel ready",
+    "createdAt": "2026-10-14T19:54:56.181Z",
+    "lastActive": "2026-10-14T19:55:21.455Z"
+  },
+  {
+    "roomId": "c-vjcyuq18",
+    "name": "Room UQ18",
+    "creatorId": "anon_zui2z2f4mv8hs4zh",
+    "members": [
+      "anon_zui2z2f4mv8hs4zh"
+    ],
+    "lastMessage": "Active",
+    "createdAt": "2026-10-14T19:55:25.020Z",
+    "lastActive": "2026-10-14T20:48:57.796Z"
+  }
+]

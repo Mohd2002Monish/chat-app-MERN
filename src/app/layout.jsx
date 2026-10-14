@@ -15,7 +15,7 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="icon" href="/main-icon.svg" />
       </head>
-      <body className="bg-[#1b1c24] text-white">
+      <body className="bg-[#090a0f] text-[#f1f3f9] antialiased">
         <AppProvider>{children}</AppProvider>
       </body>
     </html>

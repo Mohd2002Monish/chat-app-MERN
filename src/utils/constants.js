@@ -17,3 +17,8 @@ export const GET_ALL_CONTACTS_ROUTE = `${CONTACTS_ROUTES}/get-all-contacts`;
 export const MESSAGES_ROUTE = "api/messages";
 export const GET_ALL_MESSAGES_ROUTE = `${MESSAGES_ROUTE}/get-messages`;
 export const UPLOAD_FILE_ROUTE = `${MESSAGES_ROUTE}/upload-file`;
+
+// E2EE Room Routes
+export const GET_ROOM_MESSAGES_ROUTE = `${MESSAGES_ROUTE}/room`;
+export const UPLOAD_ROOM_FILE_ROUTE = `${MESSAGES_ROUTE}/upload-room-file`;
+export const CLEAR_ROOM_MESSAGES_ROUTE = `${MESSAGES_ROUTE}/room`;

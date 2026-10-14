@@ -22,7 +22,7 @@ const Chat = () => {
   useEffect(() => {
     if (userInfo === undefined) return;
     if (!userInfo) {
-      router.push("/auth");
+      router.push("/");
       return;
     }
     if (!userInfo.profileSetup) {

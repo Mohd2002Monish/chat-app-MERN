@@ -12,7 +12,9 @@ import fs from "fs";
 import authRoutes from "./server/routes/AuthRoutes.js";
 import contactsRoute from "./server/routes/ContactRoutes.js";
 import messagesRoute from "./server/routes/MessageRoutes.js";
+import roomRoutes from "./server/routes/RoomRoutes.js";
 import setupSocket from "./server/socket.js";
+import { startRoomCleanupSchedule } from "./server/services/roomCleanup.js";
 
 dotenv.config();
 
@@ -57,6 +59,7 @@ expressApp.use("/uploads/files", express.static(fileUploads));
 expressApp.use("/api/auth", authRoutes);
 expressApp.use("/api/contacts", contactsRoute);
 expressApp.use("/api/messages", messagesRoute);
+expressApp.use("/api/rooms", roomRoutes);
 
 // Delegate all other routes to Next.js (App Router pages, assets, etc.)
 expressApp.all("*", (req, res) => {
@@ -68,19 +71,28 @@ const server = http.createServer(expressApp);
 // Setup Socket.IO on the same HTTP server instance
 setupSocket(server);
 
+// Prevent Mongoose from freezing operations for 10s when DB is not connected
+mongoose.set("bufferCommands", false);
+
 // Connect Database and Start Server
 if (mongoUri) {
   mongoose
-    .connect(mongoUri)
+    .connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+    })
     .then(() => {
       console.log("Database connected successfully!");
     })
     .catch((error) => {
-      console.error("Database connection failed:", error.message);
+      console.error("Database connection failed (bad auth or network):", error.message);
+      console.log("-> Running smoothly in zero-latency fallback mode.");
     });
 } else {
   console.warn("WARNING: MONGO_URI is not set in environment.");
 }
+
+// Start 15-day inactive room auto-cleanup scheduler (cleans both DB & fallback store)
+startRoomCleanupSchedule();
 
 server.listen(port, "0.0.0.0", () => {
   console.log(`> Ready on http://localhost:${port}`);

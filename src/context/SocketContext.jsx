@@ -2,11 +2,13 @@
 
 import { useAppStore } from "@/store";
 import { HOST } from "@/utils/constants";
+import { getAnonymousUser } from "@/lib/anonymous-user";
 import {
   createContext,
   useContext,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import { io } from "socket.io-client";
 
@@ -17,18 +19,24 @@ export const useSocket = () => {
 };
 
 export const SocketProvider = ({ children }) => {
-  const socket = useRef(null);
+  const socketRef = useRef(null);
+  const [activeSocket, setActiveSocket] = useState(null);
   const { userInfo } = useAppStore();
 
   useEffect(() => {
-    if (userInfo?.id) {
-      socket.current = io(HOST || undefined, {
+    // Determine effective user ID (authenticated user or anonymous guest)
+    const anonUser = getAnonymousUser();
+    const effectiveUserId = userInfo?.id || anonUser.id;
+
+    if (!socketRef.current) {
+      const socket = io(HOST || undefined, {
         withCredentials: true,
-        query: { userId: userInfo.id },
+        query: { userId: effectiveUserId },
       });
 
-      socket.current.on("connect", () => {
-        console.log("Connected to socket server");
+      socket.on("connect", () => {
+        console.log("Connected to socket server with ID:", socket.id);
+        setActiveSocket(socket);
       });
 
       const handleReceiveMessage = (messageData) => {
@@ -50,18 +58,18 @@ export const SocketProvider = ({ children }) => {
         addContactsInDMContacts(messageData);
       };
 
-      socket.current.on("receiveMessage", handleReceiveMessage);
-
-      return () => {
-        if (socket.current) {
-          socket.current.disconnect();
-        }
-      };
+      socket.on("receiveMessage", handleReceiveMessage);
+      socketRef.current = socket;
+      setActiveSocket(socket);
     }
+
+    return () => {
+      // Keep connection alive across sub-navigation if same tab
+    };
   }, [userInfo]);
 
   return (
-    <SocketContext.Provider value={socket.current}>
+    <SocketContext.Provider value={activeSocket}>
       {children}
     </SocketContext.Provider>
   );
